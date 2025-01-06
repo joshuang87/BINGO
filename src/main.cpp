@@ -1,3 +1,5 @@
+#include "../include/server.h"
+#include "../include/client.h"
 #include <iostream>
 using namespace std;
 
@@ -48,6 +50,8 @@ public:
                 case 3: handleSearchRecord(); break;
                 case 4: handleViewLeaderboard(); break;
                 case 5: exitProgram(); break;
+                case 6: testServer(); break;
+                case 7: testClient(); break;
                 default: break;
                     cout << "Invalid choice! Please try again." << endl;
                     break;
