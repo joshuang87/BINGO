@@ -12,7 +12,6 @@
 using namespace std;
 
 class Player {
-
 private:
     string name;
     int gamesPlayed;
@@ -28,10 +27,10 @@ public:
 
     void generateBoard() {
         vector<int> numbers(25);
-        iota(numbers.begin(), numbers.end(), 1); 
-        random_device rd;  // Seed for the random number generator
-        mt19937 g(rd());   // Mersenne Twister engine
-        shuffle(numbers.begin(), numbers.end(),g);
+        iota(numbers.begin(), numbers.end(), 1);
+        random_device rd;
+        mt19937 g(rd());
+        shuffle(numbers.begin(), numbers.end(), g);
 
         for (int i = 0; i < 5; ++i) {
             for (int j = 0; j < 5; ++j) {
@@ -67,7 +66,6 @@ public:
     }
 
     bool checkWin() {
-
         for (int i = 0; i < 5; ++i) {
             if (all_of(marked[i].begin(), marked[i].end(), [](bool m) { return m; })) return true;
             if (all_of(marked.begin(), marked.end(), [i](vector<bool>& row) { return row[i]; })) return true;
@@ -87,10 +85,7 @@ public:
         if (won) wins++;
     }
 
-    string getName(){
-        return name;
-    }
-
+    string getName() { return name; }
     int getGamesPlayed() const { return gamesPlayed; }
     int getWins() const { return wins; }
     double getWinRate() const {
@@ -98,27 +93,55 @@ public:
     }
 };
 
+class Leaderboard {
+private:
+    vector<Player> records;
+
+public:
+    void updateLeaderboard(const vector<Player>& players) {
+        records = players;
+        sort(records.begin(), records.end(), [](const Player& a, const Player& b) {
+            if (a.getWinRate() == b.getWinRate())
+                return a.getWins() > b.getWins();
+            return a.getWinRate() > b.getWinRate();
+        });
+    }
+
+    void displayLeaderboard() {
+        cout << "\n=== Leaderboard ===\n";
+        cout << left << setw(10) << "Rank" << setw(20) << "Name" << setw(10) << "Wins" << "Win Rate (%)" << endl;
+        for (size_t i = 0; i < records.size(); ++i) {
+            cout << left << setw(10) << (i + 1) << setw(20) << records[i].getName() << setw(10) << records[i].getWins()
+                 << fixed << setprecision(2) << records[i].getWinRate() << endl;
+        }
+    }
+};
+
 class Menu {
 private:
     bool isRunning;
+    vector<Player> players;
+    Leaderboard leaderboard;
 
 public:
     Menu() : isRunning(true) {}
 
     void handleStartGame() {
-        // .................
+        // Placeholder for game initialization and logic.
     }
 
     void handleViewRecords() {
-        // .................
+        // Placeholder for viewing all records.
     }
 
     void handleSearchRecord() {
-        // .................
+        // Placeholder for searching a specific player.
     }
 
     void handleViewLeaderboard() {
-        // .................
+        leaderboard.updateLeaderboard(players);
+        leaderboard.displayLeaderboard();
+        system("pause");
     }
 
     void exitProgram() {
@@ -145,9 +168,7 @@ public:
                 case 3: handleSearchRecord(); break;
                 case 4: handleViewLeaderboard(); break;
                 case 5: exitProgram(); break;
-                case 6: testServer(); break;
-                case 7: testClient(); break;
-                default: break;
+                default:
                     cout << "Invalid choice! Please try again." << endl;
                     break;
             }
