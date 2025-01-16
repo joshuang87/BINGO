@@ -40,7 +40,7 @@ public:
         }
     }
 
-    void displayBoard() {
+    void displayBoard() const {
         for (int i = 0; i < 5; ++i) {
             for (int j = 0; j < 5; ++j) {
                 if (marked[i][j]) {
@@ -66,18 +66,55 @@ public:
     }
 
     bool checkWin() {
+        int completedLines = 0;
+    
+        // check rows
         for (int i = 0; i < 5; ++i) {
-            if (all_of(marked[i].begin(), marked[i].end(), [](bool m) { return m; })) return true;
-            if (all_of(marked.begin(), marked.end(), [i](vector<bool>& row) { return row[i]; })) return true;
+            if (all_of(marked[i].begin(), marked[i].end(), [](bool m) { return m; })) {
+                completedLines++;
+            }
         }
-
-        bool diagonal1 = true, diagonal2 = true;
+        
+        // check columns
         for (int i = 0; i < 5; ++i) {
-            if (!marked[i][i]) diagonal1 = false;
-            if (!marked[i][4 - i]) diagonal2 = false;
+            bool columnComplete = true;
+            for (int j = 0; j < 5; ++j) {
+                if (!marked[j][i]) {
+                    columnComplete = false;
+                    break;
+                }
+            }
+            if (columnComplete) {
+                completedLines++;
+            }
         }
-
-        return diagonal1 || diagonal2;
+        
+        // check first diagonal (top-left to bottom-right)
+        bool diagonal1Complete = true;
+        for (int i = 0; i < 5; ++i) {
+            if (!marked[i][i]) {
+                diagonal1Complete = false;
+                break;
+            }
+        }
+        if (diagonal1Complete) {
+            completedLines++;
+        }
+        
+        // Check second diagonal (top-right to bottom-left)
+        bool diagonal2Complete = true;
+        for (int i = 0; i < 5; ++i) {
+            if (!marked[i][4 - i]) {
+                diagonal2Complete = false;
+                break;
+            }
+        }
+        if (diagonal2Complete) {
+            completedLines++;
+        }
+        
+        // return true if 5 or more lines are completed
+        return completedLines >= 5;
     }
 
     void updateStats(bool won) {
@@ -85,12 +122,130 @@ public:
         if (won) wins++;
     }
 
-    string getName() { return name; }
+    string getName() const { return name; }
     int getGamesPlayed() const { return gamesPlayed; }
     int getWins() const { return wins; }
     double getWinRate() const {
         return gamesPlayed > 0 ? (static_cast<double>(wins) / gamesPlayed) * 100 : 0.0;
     }
+};
+
+class Game {
+private:
+    vector<Player> players;
+    int currentTurn;
+    bool isOver;
+
+public:
+    Game() : currentTurn(0), isOver(false) {}
+
+    void startGame(vector<string> playerNames) { //check if player is 2
+        if (playerNames.size() != 2) {
+            cout << "This game requires exactly 2 players.\n";
+            return;
+        }
+
+        players.clear();
+        for (const auto& name : playerNames) { //generate board for each player and save their name to player<>
+            Player player(name);
+            player.generateBoard();
+            players.push_back(player);
+        }
+
+        currentTurn = 0;
+        isOver = false;
+        cout << "Game started between " << players[0].getName() << " and " << players[1].getName() << ".\n";
+
+        for (const auto& player : players) {
+            cout << player.getName() << "'s board:\n";
+            player.displayBoard();
+            cout << endl;
+        }
+    }
+
+    void playTurn() {
+        if (isOver) {
+            cout << "Game is already over.\n";
+            return;
+        }
+
+        Player& currentPlayer = players[currentTurn];
+
+        system("cls"); 
+
+        cout << currentPlayer.getName() << "'s turn.\n";
+        cout << "Your board:\n";
+        currentPlayer.displayBoard();
+
+        int number;
+        cout << "Enter a number to mark (1-25): ";
+        cin >> number;
+
+        if (number < 1 || number > 25) {
+            cout << "Invalid number. Please choose a number between 1 and 25.\n";
+            cin.ignore();
+            cin.get();
+            return;
+        }
+
+        bool numberMarked = false;
+        for (auto& player : players) {
+            if (player.markNumber(number)) {
+                numberMarked = true;
+            }
+        }
+
+        if (!numberMarked) {
+            cout << "Number " << number << " was already marked. Try another number.\n";
+            cin.ignore();
+            cin.get();
+            return;
+        }
+
+        cout << currentPlayer.getName() << "'s board after marking " << number << ":\n";
+        currentPlayer.displayBoard();
+
+        // check if any player has won after the number is marked
+        bool gameWon = false;
+        Player* winner = nullptr;
+        
+        for (auto& player : players) {
+            if (player.checkWin()) {
+                gameWon = true;
+                winner = &player;
+                break;
+            }
+        }
+
+        if (gameWon && winner != nullptr) {
+            cout << winner->getName() << " wins!\n";
+            isOver = true;
+            
+            // update stats for all players
+            for (auto& player : players) {
+                player.updateStats(player.getName() == winner->getName());
+            }
+            
+            cout << "\nFinal boards:\n";
+            for (const auto& player : players) {
+                cout << player.getName() << "'s board:\n";
+                player.displayBoard();
+                cout << endl;
+            }
+            return;
+        }
+
+        cout << "\nPress Enter to continue to the next player...\n";
+        cin.ignore();
+        cin.get();
+
+        currentTurn = (currentTurn + 1) % players.size();
+    }
+
+    bool checkWinCondition() {
+        return players[currentTurn].checkWin();
+    }
+
 };
 
 class Leaderboard {
