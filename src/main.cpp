@@ -1,5 +1,3 @@
-#include "../include/server.h"
-#include "../include/client.h"
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -9,6 +7,8 @@
 #include <ctime>
 #include <numeric>
 #include <random>
+#include <set>
+
 using namespace std;
 
 class Player {
@@ -135,6 +135,7 @@ private:
     vector<Player> players;
     int currentTurn;
     bool isOver;
+    set<int> usedNumbers;
 
 public:
     Game() : currentTurn(0), isOver(false) {}
@@ -187,7 +188,14 @@ public:
             cin.get();
             return;
         }
-
+        
+        // Check if number was already used
+        if (usedNumbers.find(number) != usedNumbers.end()) {
+            cout << "Number " << number << " was already used. Try another number.\n";
+            cin.ignore();
+            cin.get();
+            return;
+        }
         bool numberMarked = false;
         for (auto& player : players) {
             if (player.markNumber(number)) {
@@ -195,12 +203,16 @@ public:
             }
         }
 
-        if (!numberMarked) {
+        if (numberMarked) {
+            usedNumbers.insert(number);  // Add to used numbers set
+        }
+
+        /*if (!numberMarked) {
             cout << "Number " << number << " was already marked. Try another number.\n";
             cin.ignore();
             cin.get();
             return;
-        }
+        }*/
 
         cout << currentPlayer.getName() << "'s board after marking " << number << ":\n";
         currentPlayer.displayBoard();
@@ -277,30 +289,115 @@ private:
     bool isRunning;
     vector<Player> players;
     Leaderboard leaderboard;
+    Game game;
 
 public:
     Menu() : isRunning(true) {}
+     // Check if a name already exists
+    bool isNameTaken(const string& name) {
+        return find_if(players.begin(), players.end(),
+            [&name](const Player& p) { return p.getName() == name; }) != players.end();
+    }
 
     void handleStartGame() {
-        // Placeholder for game initialization and logic.
+        system("cls");
+        cout << "\n=== Start New Game ===" << endl;
+        
+        // Get player names
+       vector<string> playerNames;
+        for (int i = 0; i < 2; i++) {
+            string name;
+            bool validName = false;
+            
+            while (!validName) {
+                cout << "Enter name for Player " << (i + 1) << ": ";
+                cin >> name;
+            
+              // Check if this name is already taken by another player
+                if (find(playerNames.begin(), playerNames.end(), name) != playerNames.end() || 
+                    (isNameTaken(name) && find(playerNames.begin(), playerNames.end(), name) == playerNames.end())) {
+                    cout << "This name is already taken. Please choose a different name.\n";
+                } else {
+                    validName = true;
+                    playerNames.push_back(name);
+                    if (!isNameTaken(name)) {
+                        players.push_back(Player(name));
+                    }
+                }
+            }
+        }
+
+        // Start the game
+        game.startGame(playerNames);
+        
+        // Game loop
+        while (!game.checkWinCondition()) {
+            game.playTurn();
+        }
+        
+        // Update leaderboard after game ends
+        leaderboard.updateLeaderboard(players);
+        cout << "\nPress any key to return to menu...";
+        cin.ignore();
+        cin.get();
     }
 
     void handleViewRecords() {
-        // Placeholder for viewing all records.
+        system("cls");
+        cout << "\n=== Player Records ===" << endl;
+        cout << left << setw(20) << "Name" << setw(15) << "Games Played" 
+             << setw(10) << "Wins" << "Win Rate (%)" << endl;
+        cout << string(55, '-') << endl;
+
+        for (const auto& player : players) {
+            cout << left << setw(20) << player.getName() 
+                 << setw(15) << player.getGamesPlayed()
+                 << setw(10) << player.getWins()
+                 << fixed << setprecision(2) << player.getWinRate() << endl;
+        }
+
+        cout << "\nPress any key to return to menu...";
+        cin.ignore();
+        cin.get();
     }
 
     void handleSearchRecord() {
-        // Placeholder for searching a specific player.
+        system("cls");
+        cout << "\n=== Search Player Record ===" << endl;
+        
+        string searchName;
+        cout << "Enter player name to search: ";
+        cin >> searchName;
+
+        auto player = find_if(players.begin(), players.end(),
+            [&searchName](const Player& p) { return p.getName() == searchName; });
+
+        if (player != players.end()) {
+            cout << "\nPlayer found!" << endl;
+            cout << "Name: " << player->getName() << endl;
+            cout << "Games Played: " << player->getGamesPlayed() << endl;
+            cout << "Wins: " << player->getWins() << endl;
+            cout << "Win Rate: " << fixed << setprecision(2) << player->getWinRate() << "%" << endl;
+        } else {
+            cout << "\nPlayer not found!" << endl;
+        }
+
+        cout << "\nPress any key to return to menu...";
+        cin.ignore();
+        cin.get();
     }
 
     void handleViewLeaderboard() {
         leaderboard.updateLeaderboard(players);
         leaderboard.displayLeaderboard();
-        system("pause");
+        cout << "\nPress any key to return to menu...";
+        cin.ignore();
+        cin.get();
     }
 
     void exitProgram() {
         isRunning = false;
+        cout << "\nThank you for playing! Goodbye!\n";
     }
 
     void displayMainMenu() {
@@ -325,6 +422,7 @@ public:
                 case 5: exitProgram(); break;
                 default:
                     cout << "Invalid choice! Please try again." << endl;
+                    system("pause");
                     break;
             }
         }
