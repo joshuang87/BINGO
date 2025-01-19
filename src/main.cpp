@@ -142,6 +142,10 @@ private:
 public:
     Game() : currentTurn(0), isOver(false) {}
 
+    bool isGameOver() const {
+        return isOver;
+    }
+
     void startGame(vector<string> playerNames) { //check if player is 2
         if (playerNames.size() != 2) {
             cout << "This game requires exactly 2 players.\n";
@@ -149,6 +153,7 @@ public:
         }
 
         players.clear();
+        usedNumbers.clear();
         for (const auto& name : playerNames) { //generate board for each player and save their name to player<>
             Player player(name);
             player.generateBoard();
@@ -333,7 +338,7 @@ public:
         game.startGame(playerNames);
         
         // Game loop
-        while (!game.checkWinCondition()) {
+       while (!game.isGameOver()) {
             game.playTurn();
         }
         
@@ -390,6 +395,7 @@ public:
     }
 
     void handleViewLeaderboard() {
+        system("cls"); 
         leaderboard.updateLeaderboard(players);
         leaderboard.displayLeaderboard();
         cout << "\nPress any key to return to menu...";
