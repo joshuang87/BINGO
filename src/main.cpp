@@ -1,3 +1,5 @@
+#include "../include/server.h"
+#include "../include/client.h"
 #include <iostream>
 #include <iomanip>
 #include <vector>
