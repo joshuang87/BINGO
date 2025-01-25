@@ -520,12 +520,15 @@ public:
             usedNumbers.insert(number);
         }
 
-        cout << "\n" << currentPlayer.getName() << "'s board after marking " << number << ":\n";
+        //clear screen and display marked board
+        system("cls");
+        cout << "Room Name: " << roomName << endl;
+        cout << currentPlayer.getName() << "'s board after marking " << number << ":\n";
         currentPlayer.displayBoard();
 
         bool gameWon = false;
         Player* winner = nullptr;
-        
+
         for (auto& player : players) {
             if (player.checkWin()) {
                 gameWon = true;
@@ -552,11 +555,26 @@ public:
             return;
         }
 
-        currentTurn = (currentTurn + 1) % players.size();
-        
-        cout << "\nPress Enter for next player's turn...";
+        //wait for Enter to clear the screen
+        cout << "\nPress Enter to continue...";
         cin.ignore();
         cin.get();
+
+        //clear screen and display "Press Enter twice to continue..."
+        system("cls");
+        cout << "Press Enter twice to continue...";
+        cin.ignore();
+        cin.get();
+
+        //move to the next player's turn and display their board
+        currentTurn = (currentTurn + 1) % players.size();
+
+        //clear screen and show the next player's board
+        system("cls");
+        cout << "Room Name: " << roomName << endl;
+        cout << players[currentTurn].getName() << "'s turn.\n";
+        cout << "Your board:\n";
+        players[currentTurn].displayBoard();
     }
 };
 
