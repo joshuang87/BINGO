@@ -261,32 +261,29 @@ public:
        wins = winCount;
    }
 
-   void savePlayerStats() {
-       ofstream tempFile("temp_stats.txt");
-       ifstream statsFile("player_stats.txt");
-       bool found = false;
-       
-       string line;
-       while (getline(statsFile, line)) {
-           stringstream ss(line);
-           string playerName;
-           getline(ss, playerName, ',');
-           
-           if (playerName != name) {
-               tempFile << line << endl;
-           } else {
-               found = true;
-           }
-       }
-       
-       tempFile << name << "," << gamesPlayed << "," << wins << endl;
-       
-       tempFile.close();
-       statsFile.close();
-       
-       remove("player_stats.txt");
-       rename("temp_stats.txt", "player_stats.txt");
-   }
+ void savePlayerStats() {
+    ofstream tempFile("temp_stats.txt");
+    ifstream statsFile("player_stats.txt");
+    
+    string line;
+    while (getline(statsFile, line)) {
+        stringstream ss(line);
+        string playerName;
+        getline(ss, playerName, ',');
+        
+        if (playerName != name) {
+            tempFile << line << endl;
+        }
+    }
+    
+    tempFile << name << "," << gamesPlayed << "," << wins << endl;
+    
+    tempFile.close();
+    statsFile.close();
+    
+    remove("player_stats.txt");
+    rename("temp_stats.txt", "player_stats.txt");
+}
 
    void loadPlayerStats() {
        ifstream file("player_stats.txt");
@@ -649,7 +646,6 @@ private:
     vector<Player> players;
     Leaderboard leaderboard;
     Game game;
-    map<string, Game> savedGames;
     UserManager userManager;
 
     void displayCurrentTime() {
