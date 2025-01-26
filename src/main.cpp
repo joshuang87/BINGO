@@ -67,7 +67,12 @@ public:
     bool verifySecurityAnswers(const string& color, const string& sport) const {
         return favoriteColor == color && favoriteSport == sport;
     }
-    
+    bool verifyColor(const string& color) const {
+        return favoriteColor == color;
+    }
+    bool verifySport(const string& sport) const {
+        return favoriteSport == sport;
+    }
     void changePassword(const string& newPwd) { password = newPwd; }
     
     string serialize() const {
@@ -90,6 +95,17 @@ private:
     const string USER_FILE = "users.txt";
 
 public:
+
+     bool verifyColor(const string& username, const string& color) {
+        auto it = users.find(username);
+        return it != users.end() && it->second.verifyColor(color);
+    }
+
+    bool verifySport(const string& username, const string& sport) {
+        auto it = users.find(username);
+        return it != users.end() && it->second.verifySport(sport);
+    }
+    
     UserManager() {
         loadUsers();
     }
@@ -673,63 +689,106 @@ private:
     }
 
     string authenticatePlayer() {
-        string username, password;
-        while (true) {
-            cout << "Enter username: ";
-            cin >> username;
+    string username, password;
+    int passwordAttempts = 0;
+    int securityAnswerAttempts = 0;
+    
+    while (true) {
+        cout << "Enter username: ";
+        cin >> username;
+        
+        if (!userManager.userExists(username)) {
+            cout << "New user. Please register.\n";
+            cout << "Enter password: ";
+            cin.ignore();
+            password = getHiddenInput();
             
-            if (!userManager.userExists(username)) {
-                cout << "New user. Please register.\n";
+            cout << "Enter favorite color (security question): ";
+            string color;
+            cin >> color;
+            cout << "Enter favorite sport (security question): ";
+            string sport;
+            cin >> sport;
+            
+            if (userManager.registerUser(username, password, color, sport)) {
+                cout << "Registration successful!\n";
+                return username;
+            }
+        } else {
+            while (passwordAttempts < 3) {
                 cout << "Enter password: ";
-                cin.ignore();
-                password = getHiddenInput();
-                
-                cout << "Enter favorite color (security question): ";
-                string color;
-                cin >> color;
-                cout << "Enter favorite sport (security question): ";
-                string sport;
-                cin >> sport;
-                
-                if (userManager.registerUser(username, password, color, sport)) {
-                    cout << "Registration successful!\n";
-                    return username;
-                }
-            } else {
-                cout << "Enter password: ";
-                cin.ignore();
+                if (passwordAttempts == 0) cin.ignore();
                 password = getHiddenInput();
                 
                 if (userManager.authenticateUser(username, password)) {
                     return username;
                 } else {
+                    passwordAttempts++;
+                    if (passwordAttempts >= 3) {
+                        cout << "\nToo many incorrect password attempts.\n";
+                        cout << "Proceeding to security verification...\n\n";
+                        break;
+                    }
                     cout << "Invalid password.\n";
-                    cout << "1. Try again\n2. Reset password\nChoice: ";
+                    cout << "1. Try again\n2. Reset password\nChoice (1-2): ";
                     int choice;
-                    cin >> choice;
+                    while (!(cin >> choice) || (choice != 1 && choice != 2)) {
+                        cout << "Invalid input. Please enter 1 or 2: ";
+                        cin.clear();
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    }
                     
                     if (choice == 2) {
-                        string color, sport, newPassword;
-                        cout << "Enter your favorite color: ";
-                        cin >> color;
-                        cout << "Enter your favorite sport: ";
-                        cin >> sport;
-                        cout << "Enter new password: ";
-                        cin.ignore();
-                        newPassword = getHiddenInput();
-                        
-                        if (userManager.resetPassword(username, color, sport, newPassword)) {
-                            cout << "Password reset successful!\n";
-                            return username;
-                        } else {
-                            cout << "Security answers incorrect.\n";
-                        }
+                        break;
                     }
                 }
             }
+
+            // Security questions process
+            while (securityAnswerAttempts < 3) {
+                string color, sport;
+    
+                cout << "Enter your favorite color: ";
+                cin >> color;
+    
+            if (!userManager.verifyColor(username, color)) {
+                securityAnswerAttempts++;
+                cout << "Incorrect favorite color.\n";
+            if (securityAnswerAttempts >= 3) break;
+            continue;
+        }
+    
+    cout << "Enter your favorite sport: ";
+    cin >> sport;
+    
+    if (!userManager.verifySport(username, sport)) {
+        securityAnswerAttempts++;
+        cout << "Incorrect favorite sport.\n";
+        if (securityAnswerAttempts >= 3) break;
+        continue;
+    }
+    
+    cout << "Enter new password: ";
+    cin.ignore();
+    string newPassword = getHiddenInput();
+    userManager.resetPassword(username, color, sport, newPassword);
+    cout << "Password reset successful!\n";
+    return username;
+}
+
+            if (securityAnswerAttempts >= 3) {
+                cout << "\nToo many incorrect security answer attempts.\n";
+                cout << "As mentioned earlier, account recovery is not possible.\n";
+                cout << "Please create a new account.\n";
+                cout << "Press Enter to continue...";
+                cin.ignore();
+                cin.get();
+                system("cls");
+                continue;
+            }
         }
     }
-
+}
 public:
     Menu() : isRunning(true) {
         leaderboard.loadLeaderboard();
@@ -741,73 +800,125 @@ public:
     }
 
     void handleStartGame() {
-        system("cls");
-        displayCurrentTime();
-        cout << "\n=== Start New Game ===" << endl;
-        
-        string roomName;
-        cout << "Enter room name (max 8 characters): ";
-        cin.ignore();
-        getline(cin, roomName);
-        
-        if (roomName.length() > 8) {
-            roomName = roomName.substr(0, 8);
-            cout << "Room name truncated to: " << roomName << endl;
-        }
-        
-        game.setRoomName(roomName);
-        
-        vector<string> playerNames;
-        for (int i = 0; i < 2; i++) {
-            string username = authenticatePlayer();
-            playerNames.push_back(username);
-            if (!isNameTaken(username)) {
-                players.push_back(Player(username));
-            }
-        }
+    system("cls");
+    displayCurrentTime();
+    cout << "\n=== Start New Game ===" << endl;
+    
+    string roomName;
+    cout << "Enter room name (max 8 characters): ";
+    cin.ignore();
+    getline(cin, roomName);
+    
+    if (roomName.length() > 8) {
+        roomName = roomName.substr(0, 8);
+        cout << "Room name truncated to: " << roomName << endl;
+    }
+    
+    game.setRoomName(roomName);
+    
+    cout << "\n!!! IMPORTANT ACCOUNT SECURITY WARNING !!!" << endl;
+    cout << "Please remember your username, password, and security answers carefully." << endl;
+    cout << "If you forget them, you won't be able to access your account again." << endl;
+    cout << "There is no way to recover a lost account." << endl;
+    cout << "\nPress Enter to continue...";
+    cin.get();
 
-        game.startGame(playerNames);
+    vector<string> playerNames;
+    
+    // Player 1 Authentication
+    system("cls");
+    displayCurrentTime();
+    cout << "\n=== Player 1 Authentication ===" << endl;
+    cout << string(30, '=') << endl;
+    
+    while (true) {
+        string username = authenticatePlayer();
+        playerNames.push_back(username);
+        if (!isNameTaken(username)) {
+            players.push_back(Player(username));
+        }
+        break;
+    }
+    
+    cout << "\nPlayer 1 authentication successful!" << endl;
+    cout << "Press Enter to continue to Player 2..." << endl;
+    cin.get();
+    
+    // Player 2 Authentication
+    system("cls");
+    displayCurrentTime();
+    cout << "\n=== Player 2 Authentication ===" << endl;
+    cout << string(30, '=') << endl;
+    
+    while (true) {
+        string username = authenticatePlayer();
         
+        // Check if this username is already taken in current game
+        if (username == playerNames[0]) {
+            cout << "This user is already in the game. Please use a different account.\n";
+            continue;
+        }
+        
+        playerNames.push_back(username);
+        if (!isNameTaken(username)) {
+            players.push_back(Player(username));
+        }
+        break;
+    }
+
+    system("cls");
+    displayCurrentTime();
+    cout << "\n=== Game Starting ===" << endl;
+    cout << string(30, '=') << endl;
+    cout << "Both players authenticated successfully!\n\n";
+    cout << "Player 1: " << playerNames[0] << endl;
+    cout << "Player 2: " << playerNames[1] << endl;
+    cout << "\nPress Enter to start the game...";
+    cin.get();
+    
+    game.startGame(playerNames);
+    
+    while (!game.isGameOver()) {
+        game.playTurn();
+    }
+    
+    leaderboard.updateLeaderboard(game.getPlayers());
+    leaderboard.saveLeaderboard();
+    
+    cout << "\nPress Enter to continue...";
+    cin.get();
+}
+
+void handleLoadGame() {
+    system("cls");
+    displayCurrentTime();
+    cout << "\n=== Load Game ===" << endl;
+    
+    if (game.loadGameState("bingo_save.txt")) {
+        cout << "\nGame loaded successfully!\n";
+        cout << "Room Name: " << game.getRoomName() << endl;
+        cout << "Press Enter to continue...";
+        cin.ignore();
+        cin.get();
+
         while (!game.isGameOver()) {
             game.playTurn();
         }
         
-        leaderboard.updateLeaderboard(game.getPlayers());
-        leaderboard.saveLeaderboard();
-        
-        cout << "\nPress Enter to continue...";
-        cin.get();
-    }
-
-    void handleLoadGame() {
-        system("cls");
-        displayCurrentTime();
-        cout << "\n=== Load Game ===" << endl;
-        
-        if (game.loadGameState("bingo_save.txt")) {
-            cout << "\nGame loaded successfully!\n";
-            cout << "Room Name: " << game.getRoomName() << endl;
-            cout << "Press Enter to continue...";
-            cin.ignore();
-            cin.get();
-
-            while (!game.isGameOver()) {
-                game.playTurn();
+        const vector<Player>& gamePlayers = game.getPlayers();
+        for (const auto& player : gamePlayers) {
+            auto it = find_if(players.begin(), players.end(),
+                [&](const Player& p) { return p.getName() == player.getName(); });
+            if (it == players.end()) {
+                players.push_back(player);
             }
-            
-            const vector<Player>& gamePlayers = game.getPlayers();
-            for (const auto& player : gamePlayers) {
-                auto it = find_if(players.begin(), players.end(),
-                    [&](const Player& p) { return p.getName() == player.getName(); });
-                if (it == players.end()) {
-                    players.push_back(player);
-                }
-            }
-            
-            leaderboard.updateLeaderboard(players);
-            leaderboard.saveLeaderboard();
         }
+        
+        leaderboard.updateLeaderboard(players);
+        leaderboard.saveLeaderboard();
     }
+}
+
 void handleSearchRecord() {
     system("cls");
     cout << "\n=== Search Player Record ===" << endl;
