@@ -15,6 +15,7 @@
 #include <map>
 #include <unordered_map>
 #include <conio.h>
+#include <filesystem>
 
 using namespace std;
 
@@ -360,7 +361,70 @@ public:
    }
 };
 
+class RoomManager {
+private:
+    vector<string> activeRooms;
+    const string SAVE_DIRECTORY = "saved_games/";
+
+public:
+    RoomManager() {
+        if (!filesystem::exists(SAVE_DIRECTORY)) {
+            filesystem::create_directory(SAVE_DIRECTORY);
+        }
+        loadActiveRooms();
+    }
+
+    void loadActiveRooms() {
+        activeRooms.clear();
+        for (const auto& entry : filesystem::directory_iterator(SAVE_DIRECTORY)) {
+            if (entry.path().extension() == ".txt") {
+                string filename = entry.path().filename().string();
+                activeRooms.push_back(filename.substr(0, filename.length() - 4));
+            }
+        }
+    }
+
+    string generateRoomId() {
+        int nextId = 1;
+        while (true) {
+            string roomId = "Room_" + to_string(nextId);
+            if (find(activeRooms.begin(), activeRooms.end(), roomId) == activeRooms.end()) {
+                return roomId;
+            }
+            nextId++;
+        }
+    }
+
+    void addRoom(const string& roomId) {
+        if (find(activeRooms.begin(), activeRooms.end(), roomId) == activeRooms.end()) {
+            activeRooms.push_back(roomId);
+        }
+    }
+
+    void removeRoom(const string& roomId) {
+        string filename = SAVE_DIRECTORY + roomId + ".txt";
+        if (filesystem::exists(filename)) {
+            filesystem::remove(filename);
+        }
+        auto it = find(activeRooms.begin(), activeRooms.end(), roomId);
+        if (it != activeRooms.end()) {
+            activeRooms.erase(it);
+        }
+    }
+
+    const vector<string>& getActiveRooms() const {
+        return activeRooms;
+    }
+
+    string getSaveFilePath(const string& roomId) const {
+        return SAVE_DIRECTORY + roomId + ".txt";
+    }
+};
+
 class Game {
+public:
+    static RoomManager roomManager;
+
 private:
     vector<Player> players;
     int currentTurn;
@@ -371,10 +435,8 @@ private:
 
 public:
     Game() : currentTurn(0), isOver(false) {
-        auto now = chrono::system_clock::now();
-        auto timestamp = chrono::system_clock::to_time_t(now);
-        gameSessionId = to_string(timestamp);
-        roomName = "Room_" + gameSessionId;
+        gameSessionId = to_string(chrono::system_clock::to_time_t(chrono::system_clock::now()));
+        roomName = roomManager.generateRoomId();
     }
 
     bool isGameOver() const { return isOver; }
@@ -382,7 +444,8 @@ public:
     void setRoomName(const string& name) { roomName = name; }
     const vector<Player>& getPlayers() const { return players; }
 
-    void saveGameState(const string& filename) {
+    void saveGameState() {
+        string filename = roomManager.getSaveFilePath(roomName);
         ofstream saveFile(filename);
         if (!saveFile.is_open()) {
             cout << "Error: Could not open save file.\n";
@@ -403,10 +466,12 @@ public:
         }
 
         saveFile.close();
-        cout << "Game saved successfully.\n";
+        roomManager.addRoom(roomName);
+        cout << "Game saved successfully in room: " << roomName << "\n";
     }
 
-    bool loadGameState(const string& filename) {
+    bool loadGameState(const string& roomId) {
+        string filename = roomManager.getSaveFilePath(roomId);
         ifstream loadFile(filename);
         if (!loadFile.is_open()) {
             cout << "Error: Could not open save file.\n";
@@ -443,8 +508,48 @@ public:
             players.push_back(player);
         }
 
-        cout << "Game loaded successfully.\n";
+        cout << "Game loaded successfully from room: " << roomId << "\n";
         return true;
+    }
+
+    void cleanupRoom() {
+        if (!isOver) {
+            char saveChoice;
+            cout << "Do you want to save the game state? (Y/N): ";
+            cin >> saveChoice;
+            if (toupper(saveChoice) == 'Y') {
+                saveGameState();
+            } else {
+                roomManager.removeRoom(roomName);
+            }
+        }
+    }
+
+    static void displaySavedGames() {
+    const vector<string>& rooms = roomManager.getActiveRooms();
+    if (rooms.empty()) {
+        cout << "No saved games found.\n";
+        return;
+    }
+
+    cout << "\nAvailable saved games:\n";
+    cout << string(50, '=') << endl;
+    cout << left << setw(10) << "Number" << setw(20) << "Room Name" << endl;
+    cout << string(50, '-') << endl;
+    
+    for (size_t i = 0; i < rooms.size(); ++i) {
+        cout << left << setw(10) << (i + 1) << setw(20) << rooms[i] << endl;
+    }
+    cout << string(50, '=') << endl;
+    cout << "\nPlease enter the Number (1-" << rooms.size() << ") to select a game." << endl;
+}
+
+    static bool loadGameByIndex(Game& game, int index) {
+        const vector<string>& rooms = roomManager.getActiveRooms();
+        if (index < 1 || index > static_cast<int>(rooms.size())) {
+            return false;
+        }
+        return game.loadGameState(rooms[index - 1]);
     }
 
     void startGame(vector<string>& playerNames) {
@@ -491,12 +596,7 @@ public:
         cin >> input;
 
         if (toupper(input[0]) == 'Q') {
-            char saveChoice;
-            cout << "Do you want to save the game state? (Y/N): ";
-            cin >> saveChoice;
-            if (toupper(saveChoice) == 'Y') {
-                saveGameState("bingo_save.txt");
-            }
+            cleanupRoom();
             isOver = true;
             return;
         }
@@ -536,7 +636,6 @@ public:
             usedNumbers.insert(number);
         }
 
-        //clear screen and display marked board
         system("cls");
         cout << "Room Name: " << roomName << endl;
         cout << currentPlayer.getName() << "'s board after marking " << number << ":\n";
@@ -571,21 +670,17 @@ public:
             return;
         }
 
-        //wait for Enter to clear the screen
         cout << "\nPress Enter to continue...";
         cin.ignore();
         cin.get();
 
-        //clear screen and display "Press Enter twice to continue..."
         system("cls");
         cout << "Press Enter twice to continue...";
         cin.ignore();
         cin.get();
 
-        //move to the next player's turn and display their board
         currentTurn = (currentTurn + 1) % players.size();
 
-        //clear screen and show the next player's board
         system("cls");
         cout << "Room Name: " << roomName << endl;
         cout << players[currentTurn].getName() << "'s turn.\n";
@@ -894,7 +989,24 @@ void handleLoadGame() {
     displayCurrentTime();
     cout << "\n=== Load Game ===" << endl;
     
-    if (game.loadGameState("bingo_save.txt")) {
+    Game::displaySavedGames();
+    
+    if (Game::roomManager.getActiveRooms().empty()) {
+        cout << "\nPress Enter to continue...";
+        cin.ignore();
+        cin.get();
+        return;
+    }
+    
+    cout << "\nEnter Number shown above to load (0 to cancel): ";
+    int choice;
+    cin >> choice;
+    
+    if (choice == 0) {
+        return;
+    }
+    
+    if (Game::loadGameByIndex(game, choice)) {
         cout << "\nGame loaded successfully!\n";
         cout << "Room Name: " << game.getRoomName() << endl;
         cout << "Press Enter to continue...";
@@ -916,6 +1028,11 @@ void handleLoadGame() {
         
         leaderboard.updateLeaderboard(players);
         leaderboard.saveLeaderboard();
+    } else {
+        cout << "Invalid room number.\n";
+        cout << "Press Enter to continue...";
+        cin.ignore();
+        cin.get();
     }
 }
 
@@ -992,6 +1109,8 @@ void handleSearchRecord() {
         }
     }
 };
+
+RoomManager Game::roomManager;
 
 int main() {
     Menu menu;

@@ -1,4 +1,4 @@
 bbq,30,30
 qqb,30,0
-yeap,15,12
-shen,15,3
+yeap,16,12
+shen,16,4
