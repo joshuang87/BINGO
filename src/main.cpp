@@ -19,11 +19,12 @@
 
 using namespace std;
 
+// Helper function to get password input
 string getHiddenInput() {
     string input;
     char ch;
-    while ((ch = _getch()) != '\r') {
-        if (ch == '\b') {
+    while ((ch = _getch()) != '\r') { // read until Enter key
+        if (ch == '\b') { // handle backspace
             if (!input.empty()) {
                 cout << "\b \b";
                 input.pop_back();
@@ -37,29 +38,32 @@ string getHiddenInput() {
     return input;
 }
 
+// Show game rules to players
 void displayRules() {
-    cout << "\n=== Bingo Game Rules ===" << endl;
-    cout << "1. Each player gets a 5x5 board with numbers 1-25 randomly arranged" << endl;
-    cout << "2. Players take turns calling numbers from 1-25" << endl;
-    cout << "3. If the called number appears on any player's board, it's marked with 'X'" << endl;
-    cout << "4. To win, a player must complete 5 lines (horizontal, vertical, or diagonal)" << endl;
-    cout << "5. A player can only see their own board during the game" << endl;
-    cout << "6. Type a number (1-25) to play or 'Q' to quit during your turn" << endl;
-    cout << "\nPress any key to continue...";
+    cout << "\n=== Bingo Rules ===" << endl;  // simplified title
+    cout << "1. You will get a 5x5 board with numbers 1-25" << endl;
+    cout << "2. Take turns picking numbers" << endl;
+    cout << "3. Numbers get marked with X on boards" << endl;
+    cout << "4. Get 5 lines to win (rows/columns/diagonals)" << endl;
+    cout << "5. Can't see other player's board" << endl;
+    cout << "6. Enter 1-25 to play or Q to quit" << endl;
+    
+    cout << "\nHit Enter to start...";
     cin.ignore();
     cin.get();
 }
 
-// User class to handle authentication
+// Handles player info and authentication
 class User {
 private:
     string username;
-    string password;
-    string favoriteColor;
+    string password;  // shortened variable name
+    string favoriteColor; // more casual variable names
     string favoriteSport;
 
 public:
-    User() {}
+    User() {} // default constructor
+    // main constructor with all fields
     User(string uname, string pwd, string color, string sport) 
         : username(uname), password(pwd), favoriteColor(color), favoriteSport(sport) {}
 
@@ -89,11 +93,11 @@ public:
     }
 };
 
-// UserManager class to handle user operations
+// Add more features to user management
 class UserManager {
 private:
-    unordered_map<string, User> users;
-    const string USER_FILE = "users.txt";
+    unordered_map<string, User> users; // store users in memory
+    const string USER_FILE = "users.txt"; // file to save users
 
 public:
 
@@ -108,12 +112,12 @@ public:
     }
     
     UserManager() {
-        loadUsers();
+        loadUsers(); // load users when starting
     }
-
+    // Load users from file
     void loadUsers() {
         ifstream file(USER_FILE);
-        if (!file.is_open()) return;
+        if (!file.is_open()) return; // silently fail if no file
 
         string line;
         while (getline(file, line)) {
@@ -123,11 +127,11 @@ public:
         }
         file.close();
     }
-
+    // Save users to file
     void saveUsers() {
         ofstream file(USER_FILE);
         if (!file.is_open()) {
-            cout << "Error saving users\n";
+            cout << "Error saving users\n";// more casual error message
             return;
         }
 
@@ -136,11 +140,11 @@ public:
         }
         file.close();
     }
-
+    // Register new user
     bool registerUser(const string& username, const string& password,
                      const string& color, const string& sport) {
         if (users.find(username) != users.end()) {
-            return false;
+            return false;// username taken
         }
         users[username] = User(username, password, color, sport);
         saveUsers();
@@ -151,7 +155,7 @@ public:
         auto it = users.find(username);
         return it != users.end() && it->second.verifyPassword(password);
     }
-
+    // Reset forgotten password
     bool resetPassword(const string& username, const string& color,
                       const string& sport, const string& newPassword) {
         auto it = users.find(username);
@@ -167,11 +171,11 @@ public:
         return users.find(username) != users.end();
     }
 };
-
+// Handles player game state
 class Player {
 private:
    string name;
-   int gamesPlayed;
+   int gamesPlayed; // simplified variable names
    int wins;
    vector<vector<int>> board;
    vector<vector<bool>> marked;
