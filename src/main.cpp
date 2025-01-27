@@ -369,6 +369,7 @@ class RoomManager {
 private:
     vector<string> activeRooms;
     const string SAVE_DIRECTORY = "saved_games/";
+    set<string> usedRoomNames;  // 用于追踪已使用的房间名
 
 public:
     RoomManager() {
@@ -380,29 +381,39 @@ public:
 
     void loadActiveRooms() {
         activeRooms.clear();
+        usedRoomNames.clear();
         for (const auto& entry : filesystem::directory_iterator(SAVE_DIRECTORY)) {
             if (entry.path().extension() == ".txt") {
                 string filename = entry.path().filename().string();
-                activeRooms.push_back(filename.substr(0, filename.length() - 4));
+                string roomName = filename.substr(0, filename.length() - 4);
+                activeRooms.push_back(roomName);
+                usedRoomNames.insert(roomName);
             }
         }
+    }
+
+    bool isRoomNameTaken(const string& roomName) const {
+        return usedRoomNames.find(roomName) != usedRoomNames.end();
     }
 
     string generateRoomId() {
         int nextId = 1;
-        while (true) {
-            string roomId = "Room_" + to_string(nextId);
-            if (find(activeRooms.begin(), activeRooms.end(), roomId) == activeRooms.end()) {
-                return roomId;
-            }
+        string roomId;
+        do {
+            roomId = "Room_" + to_string(nextId);
             nextId++;
-        }
+        } while (isRoomNameTaken(roomId));
+        
+        return roomId;
     }
 
-    void addRoom(const string& roomId) {
-        if (find(activeRooms.begin(), activeRooms.end(), roomId) == activeRooms.end()) {
-            activeRooms.push_back(roomId);
+    bool addRoom(const string& roomId) {
+        if (isRoomNameTaken(roomId)) {
+            return false;
         }
+        activeRooms.push_back(roomId);
+        usedRoomNames.insert(roomId);
+        return true;
     }
 
     void removeRoom(const string& roomId) {
@@ -414,6 +425,7 @@ public:
         if (it != activeRooms.end()) {
             activeRooms.erase(it);
         }
+        usedRoomNames.erase(roomId);
     }
 
     const vector<string>& getActiveRooms() const {
@@ -519,7 +531,7 @@ public:
     void cleanupRoom() {
         if (!isOver) {
             char saveChoice;
-            cout << "Do you want to save the game state? (Y/N): ";
+            cout << "Press Y to save state /Press N or other to quit the game: ";
             cin >> saveChoice;
             if (toupper(saveChoice) == 'Y') {
                 saveGameState();
@@ -904,91 +916,109 @@ public:
     cout << "\n=== Start New Game ===" << endl;
     
     string roomName;
-    cout << "Enter room name (max 8 characters): ";
-    cin.ignore();
-    getline(cin, roomName);
+    bool validRoomName = false;
     
-    if (roomName.length() > 8) {
-        roomName = roomName.substr(0, 8);
-        cout << "Room name truncated to: " << roomName << endl;
+    while (!validRoomName) {
+        cout << "Enter room name (max 8 characters): ";
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        getline(cin, roomName);
+        
+        if (roomName.length() > 8) {
+            cout << "Room name too long. Please use max 8 characters.\n";
+            continue;  
+        }
+
+        while (Game::roomManager.isRoomNameTaken(roomName)) {
+            cout << "Room name already exists. Please choose a different name.\n";
+            cout << "Enter room name (max 8 characters): ";
+            getline(cin, roomName);
+            
+            if (roomName.length() > 8) {
+                cout << "Room name too long. Please use max 8 characters.\n";
+                break;  
+            }
+        }
+        
+        if (!Game::roomManager.isRoomNameTaken(roomName) && roomName.length() <= 8) {
+            validRoomName = true;
+        }
     }
     
     game.setRoomName(roomName);
-    
-    cout << "\n!!! IMPORTANT ACCOUNT SECURITY WARNING !!!" << endl;
-    cout << "Please remember your username, password, and security answers carefully." << endl;
-    cout << "If you forget them, you won't be able to access your account again." << endl;
-    cout << "There is no way to recover a lost account." << endl;
-    cout << "\nPress Enter to continue...";
-    cin.get();
+        
+        cout << "\n!!! IMPORTANT ACCOUNT SECURITY WARNING !!!" << endl;
+        cout << "Please remember your username, password, and security answers carefully." << endl;
+        cout << "If you forget them, you won't be able to access your account again." << endl;
+        cout << "There is no way to recover a lost account." << endl;
+        cout << "\nPress Enter to continue...";
+        cin.get();
 
-    vector<string> playerNames;
+        vector<string> playerNames;
     
     // Player 1 Authentication
-    system("cls");
-    displayCurrentTime();
-    cout << "\n=== Player 1 Authentication ===" << endl;
-    cout << string(30, '=') << endl;
-    
-    while (true) {
-        string username = authenticatePlayer();
-        playerNames.push_back(username);
-        if (!isNameTaken(username)) {
-            players.push_back(Player(username));
-        }
-        break;
-    }
-    
-    cout << "\nPlayer 1 authentication successful!" << endl;
-    cout << "Press Enter to continue to Player 2..." << endl;
-    cin.get();
-    
-    // Player 2 Authentication
-    system("cls");
-    displayCurrentTime();
-    cout << "\n=== Player 2 Authentication ===" << endl;
-    cout << string(30, '=') << endl;
-    
-    while (true) {
-        string username = authenticatePlayer();
+        system("cls");
+        displayCurrentTime();
+        cout << "\n=== Player 1 Authentication ===" << endl;
+        cout << string(30, '=') << endl;
         
-        // Check if this username is already taken in current game
-        if (username == playerNames[0]) {
-            cout << "This user is already in the game. Please use a different account.\n";
-            continue;
+        while (true) {
+            string username = authenticatePlayer();
+            playerNames.push_back(username);
+            if (!isNameTaken(username)) {
+                players.push_back(Player(username));
+            }
+            break;
         }
         
-        playerNames.push_back(username);
-        if (!isNameTaken(username)) {
-            players.push_back(Player(username));
+        cout << "\nPlayer 1 authentication successful!" << endl;
+        cout << "Press Enter to continue to Player 2..." << endl;
+        cin.get();
+        
+        // Player 2 Authentication
+        system("cls");
+        displayCurrentTime();
+        cout << "\n=== Player 2 Authentication ===" << endl;
+        cout << string(30, '=') << endl;
+        
+        while (true) {
+            string username = authenticatePlayer();
+            
+            if (username == playerNames[0]) {
+                cout << "This user is already in the game. Please use a different account.\n";
+                continue;
+            }
+            
+            playerNames.push_back(username);
+            if (!isNameTaken(username)) {
+                players.push_back(Player(username));
+            }
+            break;
         }
-        break;
+
+        system("cls");
+        displayCurrentTime();
+        cout << "\n=== Game Starting ===" << endl;
+        cout << string(30, '=') << endl;
+        cout << "Both players authenticated successfully!\n\n";
+        cout << "Player 1: " << playerNames[0] << endl;
+        cout << "Player 2: " << playerNames[1] << endl;
+        cout << "\nPress Enter to start the game...";
+        cin.get();
+        
+        game.startGame(playerNames);
+        
+        while (!game.isGameOver()) {
+            game.playTurn();
+        }
+        
+        leaderboard.updateLeaderboard(game.getPlayers());
+        leaderboard.saveLeaderboard();
+        
+        cout << "\nPress Enter to continue...";
+        cin.get();
     }
 
-    system("cls");
-    displayCurrentTime();
-    cout << "\n=== Game Starting ===" << endl;
-    cout << string(30, '=') << endl;
-    cout << "Both players authenticated successfully!\n\n";
-    cout << "Player 1: " << playerNames[0] << endl;
-    cout << "Player 2: " << playerNames[1] << endl;
-    cout << "\nPress Enter to start the game...";
-    cin.get();
-    
-    game.startGame(playerNames);
-    
-    while (!game.isGameOver()) {
-        game.playTurn();
-    }
-    
-    leaderboard.updateLeaderboard(game.getPlayers());
-    leaderboard.saveLeaderboard();
-    
-    cout << "\nPress Enter to continue...";
-    cin.get();
-}
-
-void handleLoadGame() {
+    void handleLoadGame() {
     system("cls");
     displayCurrentTime();
     cout << "\n=== Load Game ===" << endl;
@@ -1002,43 +1032,72 @@ void handleLoadGame() {
         return;
     }
     
-    cout << "\nEnter Number shown above to load (0 to cancel): ";
-    int choice;
-    cin >> choice;
+    cout << "\nEnter Number shown above to load (0 or other to cancel): ";
+    string input;
+    cin >> input;
     
-    if (choice == 0) {
+    if (input.find_first_not_of("0123456789") != string::npos) {
+        cout << "Invalid input. Please enter a number from the list above.\n";
+        cout << "Press Enter to continue...";
+        cin.ignore();
+        cin.get();
         return;
     }
     
-    if (Game::loadGameByIndex(game, choice)) {
-        cout << "\nGame loaded successfully!\n";
-        cout << "Room Name: " << game.getRoomName() << endl;
-        cout << "Press Enter to continue...";
-        cin.ignore();
-        cin.get();
+    try {
+        int choice = stoi(input);
+        const vector<string>& rooms = Game::roomManager.getActiveRooms();
+        
+        //if 0 then back to main menu
+        if (choice == 0) {
+            return;
+        }
+        
+        //check num
+        if (choice < 1 || choice > static_cast<int>(rooms.size())) {
+            cout << "Please enter a number between 1 and " << rooms.size() << ".\n";
+            cout << "Press Enter to continue...";
+            cin.ignore();
+            cin.get();
+            return;
+        }
+        
+        string selectedRoomName = rooms[choice - 1];
 
-        while (!game.isGameOver()) {
-            game.playTurn();
-        }
-        
-        const vector<Player>& gamePlayers = game.getPlayers();
-        for (const auto& player : gamePlayers) {
-            auto it = find_if(players.begin(), players.end(),
-                [&](const Player& p) { return p.getName() == player.getName(); });
-            if (it == players.end()) {
-                players.push_back(player);
+        //load game
+        if (Game::loadGameByIndex(game, choice)) {
+            cout << "\nGame loaded successfully!\n";
+            cout << "Room Name: " << game.getRoomName() << endl;
+            cout << "Press Enter to continue...";
+            cin.ignore();
+            cin.get();
+
+            while (!game.isGameOver()) {
+                game.playTurn();
             }
+            
+            Game::roomManager.removeRoom(selectedRoomName);
+
+            const vector<Player>& gamePlayers = game.getPlayers();
+            for (const auto& player : gamePlayers) {
+                auto it = find_if(players.begin(), players.end(),
+                    [&](const Player& p) { return p.getName() == player.getName(); });
+                if (it == players.end()) {
+                    players.push_back(player);
+                }
+            }
+            
+            leaderboard.updateLeaderboard(players);
+            leaderboard.saveLeaderboard();
         }
-        
-        leaderboard.updateLeaderboard(players);
-        leaderboard.saveLeaderboard();
-    } else {
-        cout << "Invalid room number.\n";
+    } catch (...) {
+        cout << "Invalid input. Please enter a number from the list above.\n";
         cout << "Press Enter to continue...";
         cin.ignore();
         cin.get();
+        return;
     }
-}
+};
 
 void handleSearchRecord() {
     system("cls");
@@ -1095,20 +1154,25 @@ void handleSearchRecord() {
             cout << "6. Exit" << endl;
             cout << "Choose (1-6): ";
 
-            int choice;
-            cin >> choice;
-
-            switch (choice) {
-                case 1: displayRules(); break;
-                case 2: handleStartGame(); break;
-                case 3: handleLoadGame(); break;
-                case 4: handleSearchRecord(); break;
-                case 5: handleViewLeaderboard(); break;
-                case 6: exitProgram(); break;
-                default:
-                    cout << "Invalid choice! Please try again." << endl;
-                    system("pause");
-                    break;
+            string input;
+            cin >> input;
+            
+            if (input.length() == 1 && input[0] >= '1' && input[0] <= '6') {
+                int choice = input[0] - '0';
+                
+                switch (choice) {
+                    case 1: displayRules(); break;
+                    case 2: handleStartGame(); break;
+                    case 3: handleLoadGame(); break;
+                    case 4: handleSearchRecord(); break;
+                    case 5: handleViewLeaderboard(); break;
+                    case 6: exitProgram(); break;
+                }
+            } else {
+                cout << "Please enter a number between 1 and 6." << endl;
+                cout << "Press Enter to continue..." << endl;
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cin.get();
             }
         }
     }
