@@ -477,6 +477,9 @@ void Game::playTurn() {
     cin.get();
 
     system("cls");
+    cout << "Press Enter twice to continue...";
+    cin.ignore();
+    cin.get();
 
     currentTurn = (currentTurn + 1) % players.size();
     cout << players[currentTurn].getUsername() << "'s turn.\n";
