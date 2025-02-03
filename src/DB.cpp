@@ -1,3 +1,8 @@
+/**
+ * @file DB.cpp
+ * @brief Implementation of the DB class initialization method
+ */
+
 #include "../include/DB.h"
 #include "../include/Logger.h"
 #include "../include/Account.h"
@@ -5,9 +10,19 @@
 #include <iostream>
 #include <filesystem>
 
+/**
+ * @brief Initializes the database system
+ * 
+ * This method performs the following initialization steps:
+ * 1. Checks if the data directory exists, creates it if it doesn't
+ * 2. Creates Account.json file with empty array if it doesn't exist
+ * 3. Creates Game.json file with empty array if it doesn't exist
+ * 
+ * All operations are logged using the Logger system.
+ */
 void DB::init() {
     LOG_INFO("Database checking...");
-    // 检查并创建数据目录
+    // Check and create data directory
     if (!filesystem::exists(DATADIR)) {
         try {
             LOG_INFO("Data directory creating...");
@@ -21,27 +36,25 @@ void DB::init() {
         LOG_INFO("Data directory exists!");
     }
 
+    // Initialize Account.json if it doesn't exist
     if (!filesystem::exists(ACCOUNTDATA)) {
         try {
             ofstream file(ACCOUNTDATA);
             file << "[]";
             file.close();
         } catch (const exception& e) {
-            
+            LOG_ERROR("Error creating Account.json: " + string(e.what()));
         }
     }
 
+    // Initialize Game.json if it doesn't exist
     if (!filesystem::exists(GAMEDATA)) {
         try {
             ofstream file(GAMEDATA);
             file << "[]";
             file.close();
         } catch (const exception& e) {
-            
+            LOG_ERROR("Error creating Game.json: " + string(e.what()));
         }
     }
 }
-
-template bool DB::save<Account>(const Account& acc);
-
-template vector<Account> DB::load<Account>();

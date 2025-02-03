@@ -1,3 +1,11 @@
+/**
+ * @file DB.h
+ * @brief Database management class header implementing singleton pattern
+ * 
+ * This file contains the DB class which handles all database operations
+ * including saving, loading, and resetting data in JSON format.
+ */
+
 #ifndef DB_H
 #define DB_H
 
@@ -15,55 +23,78 @@
 
 using namespace std;
 
+/**
+ * @class DB
+ * @brief Singleton class for managing database operations
+ * 
+ * This class implements the singleton pattern and provides methods for
+ * saving, loading, and resetting data in JSON format. It supports different
+ * data types through template methods.
+ */
 class DB {
     public:
-        // 获取单例实例
+        /**
+         * @brief Gets the singleton instance of the DB class
+         * @return Reference to the singleton DB instance
+         */
         static DB& getInstance() {
             static DB instance;
             return instance;
         }
 
-        // 删除拷贝构造函数和赋值运算符
+        // Delete copy constructor and assignment operator
         DB(const DB&) = delete;
         DB& operator=(const DB&) = delete;
 
+        /**
+         * @brief Initializes the database by creating necessary directories and files
+         */
         void init();
 
-        //通用保存方法
+        /**
+         * @brief Generic method to save data to JSON file
+         * @tparam T The type of data to save
+         * @param data The data object to save
+         * @return true if save was successful, false otherwise
+         * 
+         * This method saves data in JSON format. If the file doesn't exist,
+         * it creates a new file with an empty array. New data is appended
+         * to the existing array.
+         */
         template<typename T>
         bool save(const T& data) {
             string filename = getFilename<T>();
             string jsonData = data.to_json();
             
             try {
-                // 检查文件是否存在，如果不存在则创建并初始化为空数组
+                // Check if file exists, if not create and initialize with empty array
                 if (!filesystem::exists(filename)) {
                     ofstream newFile(filename);
                     newFile << "[]";
                     newFile.close();
                 }
 
-                // 读取现有文件内容
+                // Read existing file content
                 ifstream inFile(filename);
                 string content;
                 getline(inFile, content);
                 inFile.close();
 
-                // 处理文件内容
+                // Handle file content
                 if (content.empty()) {
                     content = "[]";
                 }
 
-                // 在末尾插入新数据
+                // Insert new data at the end
                 if (content == "[]") {
-                    // 如果是空数组，直接插入数据
+                    // If empty array, directly insert data
                     content = "[" + jsonData + "]";
                 } else {
-                    // 在最后一个 ']' 之前插入新数据
+                    // Insert new data before the last ']'
                     content.insert(content.length() - 1, "," + jsonData);
                 }
 
-                // 写入更新后的内容
+                // Write updated content
                 ofstream outFile(filename);
                 if (!outFile.is_open()) {
                     LOG_ERROR("Failed to open file: " + filename);
@@ -80,31 +111,38 @@ class DB {
             }
         }
 
-        // 通用读取方法
+        /**
+         * @brief Generic method to load data from JSON file
+         * @tparam T The type of data to load
+         * @return Vector of objects of type T
+         * 
+         * This method loads and parses JSON data from a file into objects.
+         * If the file doesn't exist or is empty, returns an empty vector.
+         */
         template<typename T>
         vector<T> load() {
             string filename = getFilename<T>();
             vector<T> results;
             
             try {
-                // 检查文件是否存在
+                // Check if file exists
                 if (!filesystem::exists(filename)) {
                     LOG_INFO("File not found: " + filename);
                     return results;
                 }
 
-                // 读取文件内容
+                // Read file content
                 ifstream inFile(filename);
                 string content;
                 getline(inFile, content);
                 inFile.close();
 
-                // 处理空文件或空数组的情况
+                // Handle empty file or empty array
                 if (content.empty() || content == "[]") {
                     return results;
                 }
 
-                // 解析 JSON 数组
+                // Parse JSON array
                 results = T::from_json(content);
 
                 LOG_INFO("Data loaded from " + filename);
@@ -115,7 +153,14 @@ class DB {
             }
         }
 
-        // 通用重置方法
+        /**
+         * @brief Generic method to reset data file
+         * @tparam T The type of data file to reset
+         * @return true if reset was successful
+         * 
+         * This method resets the specified data file by creating
+         * a new empty array.
+         */
         template<typename T>
         bool reset() {
             string filename = getFilename<T>();
@@ -127,14 +172,24 @@ class DB {
         }
 
     private:
+        /// Path to the data directory
         const string DATADIR = "../data";
+        /// Path to the account data file
         const string ACCOUNTDATA = "../data/Account.json";
+        /// Path to the game data file
         const string GAMEDATA = "../data/Game.json";
 
-        // 私有构造函数
+        /**
+         * @brief Private constructor for singleton pattern
+         */
         DB() {}
 
-        // 根据类型获取对应的文件名
+        /**
+         * @brief Gets the filename for a specific data type
+         * @tparam T The type of data
+         * @return String containing the filename
+         * @throw runtime_error if data type is not supported
+         */
         template<typename T>
         string getFilename() const {
             if (typeid(T) == typeid(Account) || typeid(T) == typeid(Player)) {
@@ -143,7 +198,6 @@ class DB {
             else if (typeid(T) == typeid(Game)) {
                 return GAMEDATA;
             }
-            // 可以在这里添加其他类型的文件名映射
             throw runtime_error("Unsupported data type");
         }
 };
