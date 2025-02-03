@@ -7,6 +7,8 @@
 #include <string>
 #include <set>
 
+using namespace std;
+
 class Game {
     private:
         vector<Player> players;

@@ -137,13 +137,17 @@ void Menu::handleLoadGame(Player& p1, Player& p2) {
     }    
 }
 
-void Menu::handleSearchRecord(Player& p1, Player& p2) {
+void Menu::handleSearchRecord() {
+    vector<Player> players = DB::getInstance().load<Player>();
+    if (players.empty()) {
+        cout << "No players found." << endl;
+        Util::waitEnter();
+        return;
+    }
 
     do {
         system("cls");
         cout << "\n=== Search Player Record ===" << endl;
-
-        vector<Player> players = {p1, p2};
 
         int count = 0;
         string choice;
@@ -219,7 +223,7 @@ void Menu::displayMainMenu(Player& p1, Player& p2) {
                 case 1: displayRules(); break;
                 case 2: handleStartGame(p1, p2); break;
                 case 3: handleLoadGame(p1, p2); break;
-                case 4: handleSearchRecord(p1, p2); break;
+                case 4: handleSearchRecord(); break;
                 case 5: handleViewLeaderboard(); break;
                 case 6: exitProgram(); break;
             }

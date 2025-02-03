@@ -22,7 +22,7 @@ public:
     void displayRules();
     void handleStartGame(Player& p1, Player& p2);
     void handleLoadGame(Player& p1, Player& p2);
-    void handleSearchRecord(Player& p1, Player& p2);
+    void handleSearchRecord();
     void handleViewLeaderboard();
     void exitProgram();
     void displayMainMenu(Player& p1, Player& p2);
