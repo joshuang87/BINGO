@@ -1,5 +1,18 @@
+/**
+ * @file Util.cpp
+ * @brief Implementation of utility functions used across the BINGO game
+ */
+
 #include "../include/Util.h"
 
+/**
+ * @brief Waits for user to press Enter and clears screen
+ * 
+ * This function:
+ * 1. Displays a prompt for the user to press Enter
+ * 2. Waits for user input
+ * 3. Clears the screen after input is received
+ */
 void Util::waitEnter() {
     cout << endl << "Press Enter to continue...";
     cin.ignore();
@@ -7,6 +20,12 @@ void Util::waitEnter() {
     system("cls");
 }
 
+/**
+ * @brief Displays a horizontal line for visual separation
+ * 
+ * Outputs a line of dashes to the console to create visual
+ * separation between different sections of output.
+ */
 void Util::showLine() {
     cout << "--------------------------------------------------------------" << endl;
 }
