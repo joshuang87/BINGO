@@ -29,6 +29,10 @@ class Player : public Account {
 
         // SETTER
         void setBoard(const vector<vector<int>>& board, const vector<vector<bool>>& marked);
+        void setGameCount(int count);
+        void setWinCount(int count);
+        void setLoseCount(int count);
+        void setWinRate(double rate);
 
         // DATA PROCESSING
         string to_json() const;

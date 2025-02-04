@@ -17,6 +17,72 @@ Player::Player(std::string user, std::string pwd)
     marked.resize(5, std::vector<bool>(5, false));
 }
 
+#pragma region Getter
+
+int Player::getGameCount() const {
+    return gameCount;
+}
+
+int Player::getWinCount() const {
+    return winCount;
+}
+
+double Player::getWinRate() const {
+    return gameCount == 0 ? 0.0 : (static_cast<double>(winCount) / gameCount) * 100;
+}
+
+int Player::getLoseCount() const {
+    return loseCount;
+}
+
+string Player::getBoardState() const {
+    string state = "[";
+    for (int i = 0; i < 5; ++i) {
+        state += "[";
+        for (int j = 0; j < 5; ++j) {
+            if (marked[i][j]) {
+                state += "\"x\"";
+            } else {
+                state += "\"" + to_string(board[i][j]) + "\"";
+            }
+            if (j < 4) state += ", ";
+        }
+        state += "]";
+        if (i < 4) state += ",";
+    }
+    state += "]";
+    return state;
+}
+
+#pragma endregion
+
+#pragma region Setter
+
+void Player::setBoard(const vector<vector<int>>& board, const vector<vector<bool>>& marked) {
+    this->board = board;
+    this->marked = marked;
+}
+
+void Player::setGameCount(int count) {
+    this->gameCount = count;
+}
+
+void Player::setWinCount(int count) {
+    this->winCount = count;
+}
+
+void Player::setLoseCount(int count) {
+    this->loseCount = count;
+}
+
+void Player::setWinRate(double rate) {
+    this->winRate = rate;
+}
+
+#pragma endregion
+
+#pragma region Validator
+
 Player* Player::authenticator() {
     string choice, name, password;
     int input;
@@ -95,51 +161,6 @@ Player* Player::authenticator() {
     return nullptr;  // Should never reach here
 }
 
-void Player::generateBoard() {
-    std::vector<int> numbers(25);
-    std::iota(numbers.begin(), numbers.end(), 1);
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(numbers.begin(), numbers.end(), g);
-
-    for (int i = 0; i < 5; ++i) {
-        for (int j = 0; j < 5; ++j) {
-            board[i][j] = numbers[i * 5 + j];
-            marked[i][j] = false;
-        }
-    }
-}
-
-void Player::setBoard(const vector<vector<int>>& board, const vector<vector<bool>>& marked) {
-    this->board = board;
-    this->marked = marked;
-}
-
-void Player::displayBoard() const {
-    for (int i = 0; i < 5; ++i) {
-        for (int j = 0; j < 5; ++j) {
-            if (marked[i][j]) {
-                std::cout << std::setw(3) << "X";
-            } else {
-                std::cout << std::setw(3) << board[i][j];
-            }
-        }
-        std::cout << std::endl;
-    }
-}
-
-bool Player::markNumber(int num) {
-    for (int i = 0; i < 5; ++i) {
-        for (int j = 0; j < 5; ++j) {
-            if (board[i][j] == num) {
-                marked[i][j] = true;
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 bool Player::checkWin() {
     int completedLines = 0;
 
@@ -191,46 +212,25 @@ bool Player::checkWin() {
     return completedLines >= 5;
 }
 
+bool Player::check(const Player& p) {
+    vector<Player> players = DB::getInstance().load<Player>();
+    if (players.empty()) return false;
+
+    for (const Player& player : players) {
+        if (player.getUsername() == p.getUsername() && player.getPassword() == p.getPassword()) return true;
+    }
+    return false;
+}
+
+#pragma endregion
+
+#pragma region Data Processing
+
 void Player::updateStats(bool won) {
     gameCount++;
     if (won) winCount++;
     else loseCount++;
     winRate = gameCount == 0 ? 0.0 : (static_cast<double>(winCount) / gameCount) * 100;
-}
-
-int Player::getGameCount() const {
-    return gameCount;
-}
-
-int Player::getWinCount() const {
-    return winCount;
-}
-
-double Player::getWinRate() const {
-    return gameCount == 0 ? 0.0 : (static_cast<double>(winCount) / gameCount) * 100;
-}
-
-int Player::getLoseCount() const {
-    return loseCount;
-}
-
-string Player::getBoardState() const {
-    string state = "[";
-    for (int i = 0; i < 5; ++i) {
-        state += "[";
-        for (int j = 0; j < 5; ++j) {
-            if (marked[i][j]) {
-                state += "\"x\"";
-            } else {
-                state += "\"" + to_string(board[i][j]) + "\"";
-            }
-            if (j < 4) state += ", ";
-        }
-        state += "]";
-        if (i < 4) state += ",";
-    }
-    state += "]";
-    return state;
 }
 
 vector<Player> Player::from_json(const string& json) {
@@ -294,17 +294,53 @@ string Player::to_json() const {
     return "{\"username\":\"" + getUsername() + "\",\"password\":\"" + getPassword() + "\",\"gameCount\":" + to_string(gameCount) + ",\"winCount\":" + to_string(winCount) + ",\"loseCount\":" + to_string(loseCount) + ",\"winRate\":" + to_string(getWinRate()) + "}";
 }
 
-bool Player::check(const Player& p) {
-    vector<Player> players = DB::getInstance().load<Player>();
-    if (players.empty()) return false;
-
-    for (const Player& player : players) {
-        if (player.getUsername() == p.getUsername() && player.getPassword() == p.getPassword()) return true;
-    }
-    return false;
-}
-
 bool Player::create(const Player& p) {
     if (Player::check(p)) return false;
     return DB::getInstance().save(p);
 }
+
+#pragma endregion
+
+#pragma region Other
+
+void Player::generateBoard() {
+    std::vector<int> numbers(25);
+    std::iota(numbers.begin(), numbers.end(), 1);
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(numbers.begin(), numbers.end(), g);
+
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            board[i][j] = numbers[i * 5 + j];
+            marked[i][j] = false;
+        }
+    }
+}
+
+void Player::displayBoard() const {
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            if (marked[i][j]) {
+                std::cout << std::setw(3) << "X";
+            } else {
+                std::cout << std::setw(3) << board[i][j];
+            }
+        }
+        std::cout << std::endl;
+    }
+}
+
+bool Player::markNumber(int num) {
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            if (board[i][j] == num) {
+                marked[i][j] = true;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+#pragma endregion
