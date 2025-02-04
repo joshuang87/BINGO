@@ -688,3 +688,15 @@ void Game::continueGame() {
     cout << "\nGame over. Press Enter to continue...";
     cin.get();
 }
+
+void Game::loadPlayerData(vector<Player>& ps) {
+    players[0].setGameCount(ps[0].getGameCount());
+    players[0].setWinCount(ps[0].getWinCount());
+    players[0].setLoseCount(ps[0].getLoseCount());
+    players[0].setWinRate(ps[0].getWinRate());
+    
+    players[1].setGameCount(ps[1].getGameCount());
+    players[1].setWinCount(ps[1].getWinCount());
+    players[1].setLoseCount(ps[1].getLoseCount());
+    players[1].setWinRate(ps[1].getWinRate());
+}

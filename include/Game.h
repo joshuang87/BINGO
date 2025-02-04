@@ -53,6 +53,8 @@ class Game {
         void playTurn();
         string generateGameId();
         void continueGame();
+
+        void loadPlayerData(vector<Player>& ps);
 };
 
 #endif

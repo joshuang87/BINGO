@@ -126,6 +126,8 @@ void Menu::handleLoadGame(Player& p1, Player& p2) {
         }
 
         Game game = games[choice - 1];
+        vector<Player> ps = {p1, p2};
+        game.loadPlayerData(ps);
         game.continueGame();
 
     } catch (...) {
