@@ -1,3 +1,8 @@
+/**
+ * @file Menu.cpp
+ * @brief Implementation of the Menu class functionality
+ */
+
 #include "../include/Menu.h"
 #include "../include/Leaderboard.h"
 #include "../include/Game.h"
@@ -6,8 +11,22 @@
 
 #include <chrono>
 
+/**
+ * @brief Constructor initializes the menu with isRunning set to true
+ */
 Menu::Menu() : isRunning(true) {}
 
+/**
+ * @brief Displays the game rules in a formatted manner
+ * 
+ * Shows a list of rules including:
+ * - Board size and number range
+ * - Turn-based gameplay
+ * - Marking mechanism
+ * - Win conditions
+ * - Board visibility rules
+ * - Input instructions
+ */
 void Menu::displayRules() {
     cout << "\n=== Bingo Rules ===" << endl;  // simplified title
     cout << "1. You will get a 5x5 board with numbers 1-25" << endl;
@@ -22,30 +41,29 @@ void Menu::displayRules() {
     cin.get();
 }
 
+/**
+ * @brief Displays the current system time
+ * 
+ * Uses chrono to get and display the current system time
+ * in a human-readable format.
+ */
 void Menu::displayCurrentTime() {
     auto now = chrono::system_clock::now();
     time_t currentTime = chrono::system_clock::to_time_t(now);
     cout << "Current Time: " << ctime(&currentTime);
 }
 
-// string Menu::getHiddenInput() {
-//     string input;
-//     char ch;
-//     while ((ch = _getch()) != '\r') {
-//         if (ch == '\b') {
-//             if (!input.empty()) {
-//                 input.pop_back();
-//                 cout << "\b \b";
-//             }
-//         } else {
-//             input += ch;
-//             cout << '*';
-//         }
-//     }
-//     cout << endl;
-//     return input;
-// }
-
+/**
+ * @brief Handles the process of starting a new game
+ * @param p1 Reference to Player 1
+ * @param p2 Reference to Player 2
+ * 
+ * This method:
+ * 1. Creates a new game instance
+ * 2. Displays player information
+ * 3. Manages the game loop until completion
+ * 4. Updates player statistics after the game
+ */
 void Menu::handleStartGame(Player& p1, Player& p2) {
     system("cls");
     displayCurrentTime();
@@ -68,7 +86,7 @@ void Menu::handleStartGame(Player& p1, Player& p2) {
         game.playTurn();
     }
 
-    // 重新加载玩家数据
+    // reload player saved data
     vector<Player> updatedPlayers = DB::getInstance().load<Player>();
     for (const Player& updatedPlayer : updatedPlayers) {
         if (updatedPlayer.getUsername() == p1.getUsername()) {
@@ -78,13 +96,22 @@ void Menu::handleStartGame(Player& p1, Player& p2) {
             p2 = updatedPlayer;
         }
     }
-
-    // leaderboard.updateLeaderboard(game.getPlayers());
         
     cout << "\nPress Enter to continue...";
     cin.get();
 }
 
+/**
+ * @brief Handles loading a saved game
+ * @param p1 Reference to Player 1
+ * @param p2 Reference to Player 2
+ * 
+ * This method:
+ * 1. Loads saved games from the database
+ * 2. Displays available saved games
+ * 3. Processes user input for game selection
+ * 4. Loads and continues the selected game
+ */
 void Menu::handleLoadGame(Player& p1, Player& p2) {
     system("cls");
     displayCurrentTime();
@@ -139,6 +166,15 @@ void Menu::handleLoadGame(Player& p1, Player& p2) {
     }    
 }
 
+/**
+ * @brief Handles searching and displaying player records
+ * 
+ * This method:
+ * 1. Loads all players from the database
+ * 2. Displays a list of players
+ * 3. Allows user to select a player
+ * 4. Shows detailed statistics for the selected player
+ */
 void Menu::handleSearchRecord() {
     vector<Player> players = DB::getInstance().load<Player>();
     if (players.empty()) {
@@ -189,6 +225,12 @@ void Menu::handleSearchRecord() {
     } while (true);
 }
 
+/**
+ * @brief Handles displaying the leaderboard
+ * 
+ * Clears the screen, displays the leaderboard, and waits for user input
+ * before returning to the main menu.
+ */
 void Menu::handleViewLeaderboard() {
     system("cls");
     leaderboard.displayLeaderboard();
@@ -196,11 +238,27 @@ void Menu::handleViewLeaderboard() {
     Util::waitEnter();
 }
 
+/**
+ * @brief Handles program exit
+ * 
+ * Sets isRunning to false and displays a goodbye message.
+ */
 void Menu::exitProgram() {
     isRunning = false;
     cout << "\nThank you for playing! Goodbye!\n";
 }
 
+/**
+ * @brief Displays and handles the main menu
+ * @param p1 Reference to Player 1
+ * @param p2 Reference to Player 2
+ * 
+ * This method:
+ * 1. Displays menu options in a loop
+ * 2. Processes user input
+ * 3. Calls appropriate handler methods based on user choice
+ * 4. Continues until the program is exited
+ */
 void Menu::displayMainMenu(Player& p1, Player& p2) {
     while (isRunning) {
         system("cls");
