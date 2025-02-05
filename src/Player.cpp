@@ -1,3 +1,8 @@
+/**
+ * @file Player.cpp
+ * @brief Implementation of the Player class functionality
+ */
+
 #include "../include/Util.h"
 #include "../include/Account.h"
 #include "../include/Player.h"
@@ -11,30 +16,55 @@
 #include <numeric>
 #include <sstream>
 
-Player::Player(std::string user, std::string pwd)
+/**
+ * @brief Constructor initializes a new Player with default values
+ * @param user Username for the player
+ * @param pwd Password for the player's account
+ */
+Player::Player(string user, string pwd)
     : Account(user, pwd), gameCount(0), winCount(0), loseCount(0) {
-    board.resize(5, std::vector<int>(5));
-    marked.resize(5, std::vector<bool>(5, false));
+    board.resize(5, vector<int>(5));
+    marked.resize(5, vector<bool>(5, false));
 }
 
 #pragma region Getter
 
+/**
+ * @brief Get the total number of games played
+ * @return Total game count
+ */
 int Player::getGameCount() const {
     return gameCount;
 }
 
+/**
+ * @brief Get the number of games won
+ * @return Win count
+ */
 int Player::getWinCount() const {
     return winCount;
 }
 
+/**
+ * @brief Calculate and get the player's win rate
+ * @return Win rate as a percentage
+ */
 double Player::getWinRate() const {
     return gameCount == 0 ? 0.0 : (static_cast<double>(winCount) / gameCount) * 100;
 }
 
+/**
+ * @brief Get the number of games lost
+ * @return Loss count
+ */
 int Player::getLoseCount() const {
     return loseCount;
 }
 
+/**
+ * @brief Get the current board state as a JSON string
+ * @return JSON string representing the board state
+ */
 string Player::getBoardState() const {
     string state = "[";
     for (int i = 0; i < 5; ++i) {
@@ -58,23 +88,44 @@ string Player::getBoardState() const {
 
 #pragma region Setter
 
+/**
+ * @brief Set the board and marked states
+ * @param board New board configuration
+ * @param marked New marked state configuration
+ */
 void Player::setBoard(const vector<vector<int>>& board, const vector<vector<bool>>& marked) {
     this->board = board;
     this->marked = marked;
 }
 
+/**
+ * @brief Set the total game count
+ * @param count New game count value
+ */
 void Player::setGameCount(int count) {
     this->gameCount = count;
 }
 
+/**
+ * @brief Set the win count
+ * @param count New win count value
+ */
 void Player::setWinCount(int count) {
     this->winCount = count;
 }
 
+/**
+ * @brief Set the lose count
+ * @param count New lose count value
+ */
 void Player::setLoseCount(int count) {
     this->loseCount = count;
 }
 
+/**
+ * @brief Set the win rate
+ * @param rate New win rate value
+ */
 void Player::setWinRate(double rate) {
     this->winRate = rate;
 }
@@ -83,6 +134,17 @@ void Player::setWinRate(double rate) {
 
 #pragma region Validator
 
+/**
+ * @brief Handle player authentication process
+ * 
+ * This method:
+ * 1. Displays login/signup options
+ * 2. Handles user input for authentication
+ * 3. Validates credentials
+ * 4. Creates or loads player data
+ * 
+ * @return Pointer to authenticated Player object or nullptr
+ */
 Player* Player::authenticator() {
     string choice, name, password;
     int input;
@@ -122,12 +184,12 @@ Player* Player::authenticator() {
             Player* p = new Player(name, password);
             if (Player::check(*p)) {
                 system("cls");
-                // 加载已存在玩家的所有数据
+                // Load existing player data
                 vector<Player> players = DB::getInstance().load<Player>();
                 for (const Player& player : players) {
                     if (player.getUsername() == name && player.getPassword() == password) {
-                        delete p;  // 删除临时对象
-                        return new Player(player);  // 返回包含所有数据的新对象
+                        delete p;  // Delete temporary object
+                        return new Player(player);  // Return new object with all data
                     }
                 }
             }
@@ -161,6 +223,10 @@ Player* Player::authenticator() {
     return nullptr;  // Should never reach here
 }
 
+/**
+ * @brief Check if player has won by counting completed lines
+ * @return true if player has 5 or more completed lines
+ */
 bool Player::checkWin() {
     int completedLines = 0;
 
@@ -212,6 +278,11 @@ bool Player::checkWin() {
     return completedLines >= 5;
 }
 
+/**
+ * @brief Check if player exists in database
+ * @param p Player object to check
+ * @return true if player exists with matching credentials
+ */
 bool Player::check(const Player& p) {
     vector<Player> players = DB::getInstance().load<Player>();
     if (players.empty()) return false;
@@ -226,6 +297,10 @@ bool Player::check(const Player& p) {
 
 #pragma region Data Processing
 
+/**
+ * @brief Update player statistics after a game
+ * @param won true if player won, false if lost
+ */
 void Player::updateStats(bool won) {
     gameCount++;
     if (won) winCount++;
@@ -233,6 +308,11 @@ void Player::updateStats(bool won) {
     winRate = gameCount == 0 ? 0.0 : (static_cast<double>(winCount) / gameCount) * 100;
 }
 
+/**
+ * @brief Create Player objects from JSON string
+ * @param json JSON string containing player data
+ * @return Vector of Player objects
+ */
 vector<Player> Player::from_json(const string& json) {
     vector<Player> players;
     stringstream ss(json);
@@ -290,10 +370,19 @@ vector<Player> Player::from_json(const string& json) {
     return players;
 }
 
+/**
+ * @brief Convert player data to JSON string
+ * @return JSON string representation of player data
+ */
 string Player::to_json() const {
     return "{\"username\":\"" + getUsername() + "\",\"password\":\"" + getPassword() + "\",\"gameCount\":" + to_string(gameCount) + ",\"winCount\":" + to_string(winCount) + ",\"loseCount\":" + to_string(loseCount) + ",\"winRate\":" + to_string(getWinRate()) + "}";
 }
 
+/**
+ * @brief Create a new player in the database
+ * @param p Player object to create
+ * @return true if creation successful, false if player already exists
+ */
 bool Player::create(const Player& p) {
     if (Player::check(p)) return false;
     return DB::getInstance().save(p);
@@ -303,6 +392,12 @@ bool Player::create(const Player& p) {
 
 #pragma region Other
 
+/**
+ * @brief Generate a new random BINGO board
+ * 
+ * Creates a 5x5 board with random numbers 1-25,
+ * ensuring no duplicates.
+ */
 void Player::generateBoard() {
     std::vector<int> numbers(25);
     std::iota(numbers.begin(), numbers.end(), 1);
@@ -318,6 +413,12 @@ void Player::generateBoard() {
     }
 }
 
+/**
+ * @brief Display the current board state
+ * 
+ * Shows the board with marked numbers displayed as 'X'
+ * and unmarked numbers shown as is.
+ */
 void Player::displayBoard() const {
     for (int i = 0; i < 5; ++i) {
         for (int j = 0; j < 5; ++j) {
@@ -331,6 +432,11 @@ void Player::displayBoard() const {
     }
 }
 
+/**
+ * @brief Mark a number on the board
+ * @param num Number to mark
+ * @return true if number found and marked, false if not found
+ */
 bool Player::markNumber(int num) {
     for (int i = 0; i < 5; ++i) {
         for (int j = 0; j < 5; ++j) {
