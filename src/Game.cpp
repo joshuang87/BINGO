@@ -1,3 +1,8 @@
+/**
+ * @file Game.cpp
+ * @brief Implementation of the Game class methods
+ */
+
 #include "../include/Game.h"
 #include "../include/Player.h"
 #include "../include/DB.h"
@@ -12,6 +17,10 @@
 
 using namespace std;
 
+/**
+ * @brief Constructs a Game object
+ * @param empty If true, creates an empty game without generating ID
+ */
 Game::Game(bool empty) : currentTurn(0), isOver(false), winner(nullptr) {
     if (!empty) {
         gameId = generateGameId();
@@ -20,18 +29,34 @@ Game::Game(bool empty) : currentTurn(0), isOver(false), winner(nullptr) {
 
 #pragma region Getters
 
+/**
+ * @brief Gets the game's unique identifier
+ * @return String containing the game ID
+ */
 string Game::getGameId() const {
     return gameId;
 }
 
+/**
+ * @brief Gets the winner of the game
+ * @return Pointer to winning player, nullptr if no winner
+ */
 Player* Game::getWinner() const { 
     return winner; 
 }
 
+/**
+ * @brief Gets the list of players in the game
+ * @return Constant reference to the vector of players
+ */
 const vector<Player>& Game::getPlayers() const { 
     return players; 
 }
 
+/**
+ * @brief Gets the current turn number
+ * @return String representation of current turn
+ */
 string Game::getCurrentTurn() const { 
     return to_string(currentTurn); 
 }
@@ -40,20 +65,40 @@ string Game::getCurrentTurn() const {
 
 #pragma region Setters
 
+/**
+ * @brief Sets the game's unique identifier
+ * @param gameId String containing the new game ID
+ */
 void Game::setGameId(const string& gameId) {
     this->gameId = gameId;
 }
 
+/**
+ * @brief Sets the winner of the game
+ * @param player Pointer to the winning player
+ */
 void Game::setWinner(Player* player) { 
     winner = player; 
-}   
+}
 
 #pragma endregion
  
+/**
+ * @brief Checks if the game is over
+ * @return true if game is over, false otherwise
+ */
 bool Game::isGameOver() const { 
     return isOver; 
 }
 
+/**
+ * @brief Saves the current game state to storage
+ * 
+ * This method saves the current game state to a JSON file. It handles:
+ * - Reading existing game data
+ * - Updating or adding new game state
+ * - Writing back to file
+ */
 void Game::save() {
     // Read existing game data
     ifstream inFile("../data/Game.json");
@@ -84,7 +129,7 @@ void Game::save() {
                 braceCount--;
                 currentGame += c;
                 if (braceCount == 0 && !currentGame.empty()) {
-                    // 去除前导和尾随空格
+                    // Remove leading and trailing whitespace
                     while (!currentGame.empty() && isspace(currentGame.front())) {
                         currentGame.erase(0, 1);
                     }
@@ -134,20 +179,20 @@ void Game::save() {
     bool roomFound = false;
     string finalJson = "[";
     for (size_t i = 0; i < existingGames.size(); ++i) {
-        if (!existingGames[i].empty()) {  // 只处理非空的游戏数据
+        if (!existingGames[i].empty()) {  // Only process non-empty game data
             if (existingGames[i].find("\"ID\":\"" + getGameId() + "\"") != string::npos) {
-                if (finalJson.length() > 1) finalJson += ",";  // 只在需要时添加逗号
+                if (finalJson.length() > 1) finalJson += ",";  // Add comma only when needed
                 finalJson += newGameState;
                 roomFound = true;
             } else {
-                if (finalJson.length() > 1) finalJson += ",";  // 只在需要时添加逗号
+                if (finalJson.length() > 1) finalJson += ",";  // Add comma only when needed
                 finalJson += existingGames[i];
             }
         }
     }
     
     if (!roomFound) {
-        if (finalJson.length() > 1) finalJson += ",";  // 只在需要时添加逗号
+        if (finalJson.length() > 1) finalJson += ",";  // Add comma only when needed
         finalJson += newGameState;
     }
     finalJson += "]";
@@ -163,6 +208,12 @@ void Game::save() {
     }
 }
 
+/**
+ * @brief Saves multiple games to storage
+ * @param games Vector of games to save
+ * 
+ * Similar to save(), but handles multiple games at once
+ */
 void Game::save(vector<Game>& games) {
     // Read existing game data
     ifstream inFile("../data/Game.json");
@@ -193,7 +244,7 @@ void Game::save(vector<Game>& games) {
                 braceCount--;
                 currentGame += c;
                 if (braceCount == 0 && !currentGame.empty()) {
-                    // 去除前导和尾随空格
+                    // Remove leading and trailing whitespace
                     while (!currentGame.empty() && isspace(currentGame.front())) {
                         currentGame.erase(0, 1);
                     }
@@ -253,20 +304,20 @@ void Game::save(vector<Game>& games) {
     bool roomFound = false;
     string finalJson = "[";
     for (size_t i = 0; i < existingGames.size(); ++i) {
-        if (!existingGames[i].empty()) {  // 只处理非空的游戏数据
+        if (!existingGames[i].empty()) {  // Only process non-empty game data
             if (existingGames[i].find("\"ID\":\"" + getGameId() + "\"") != string::npos) {
-                if (finalJson.length() > 1) finalJson += ",";  // 只在需要时添加逗号
+                if (finalJson.length() > 1) finalJson += ",";  // Add comma only when needed
                 finalJson += newGameState;
                 roomFound = true;
             } else {
-                if (finalJson.length() > 1) finalJson += ",";  // 只在需要时添加逗号
+                if (finalJson.length() > 1) finalJson += ",";  // Add comma only when needed
                 finalJson += existingGames[i];
             }
         }
     }
     
     if (!roomFound) {
-        if (finalJson.length() > 1) finalJson += ",";  // 只在需要时添加逗号
+        if (finalJson.length() > 1) finalJson += ",";  // Add comma only when needed
         finalJson += newGameState;
     }
     finalJson += "]";
@@ -282,10 +333,19 @@ void Game::save(vector<Game>& games) {
     }
 }
 
+/**
+ * @brief Checks if the game state is saved
+ * @return true if game is saved, false otherwise
+ */
 bool Game::isGameSaved() const {
     return isSaved;
 }
 
+/**
+ * @brief Handles cleanup when exiting a game room
+ * 
+ * If the game is not over, prompts the user to save the game state
+ */
 void Game::cleanupRoom() {
     if (!isOver) {
         char saveChoice;
@@ -299,6 +359,13 @@ void Game::cleanupRoom() {
     }
 }
 
+/**
+ * @brief Displays list of saved games for given players
+ * @param allSavedGames Vector of all saved games
+ * @param p1 First player
+ * @param p2 Second player
+ * @return true if saved games exist for players, false otherwise
+ */
 bool Game::displaySavedGames(vector<Game>& allSavedGames, Player& p1, Player& p2) {
     if (allSavedGames.empty()) {
         cout << "\nNo saved games found.\n";
@@ -333,6 +400,12 @@ bool Game::displaySavedGames(vector<Game>& allSavedGames, Player& p1, Player& p2
     return true;
 }
 
+/**
+ * @brief Starts a new game with given players
+ * @param ps Vector of pointers to players
+ * 
+ * Initializes the game board for each player and sets up initial game state
+ */
 void Game::startGame(vector<Player*> ps) {
 
     for (const Player* p : ps) {
@@ -350,6 +423,16 @@ void Game::startGame(vector<Player*> ps) {
     players[currentTurn].displayBoard();
 }
 
+/**
+ * @brief Handles the logic for a single turn in the game
+ * 
+ * This method:
+ * - Displays the current player's board
+ * - Handles player input
+ * - Validates moves
+ * - Updates game state
+ * - Checks for win conditions
+ */
 void Game::playTurn() {
     if (isOver) {
         cout << "Game is already over.\n";
@@ -487,45 +570,50 @@ void Game::playTurn() {
     players[currentTurn].displayBoard();
 }
 
+/**
+ * @brief Parses game status data from JSON
+ * @param json The JSON string containing game status
+ * @return Vector of vectors containing game board numbers
+ */
 vector<vector<int>> Game::parseGameStatusData(const string& json) {
     vector<vector<int>> result;
     vector<int> currentRow;
     
-    // 跳过前缀
+    // Skip prefix
     size_t pos = json.find("[[");
     if (pos == string::npos) return result;
     pos += 2;
     
     while (pos < json.length()) {
         if (json[pos] == '[') {
-            // 新的一行开始
+            // New row starts
             currentRow.clear();
         }
         else if (json[pos] == ']') {
-            // 一行结束
+            // Row ends
             if (!currentRow.empty()) {
                 result.push_back(currentRow);
                 currentRow.clear();
             }
 
-            // 检查是否到达最后的"]]"
+            // Check if we've reached the end of the JSON
             if (pos + 1 < json.length() && json[pos + 1] == ']') {
-                break;  // 遇到"]]"就直接结束
+                break;  // If we've reached the end, exit the loop
             }
         }
         else if (json[pos] == '\"') {
-            // 读取数字或 'x'
+            // Read a number or 'x'
             size_t nextQuote = json.find('\"', pos + 1);
             if (nextQuote == string::npos) break;
             
             string value = json.substr(pos + 1, nextQuote - pos - 1);
             if (value == "x") {
-                currentRow.push_back(-1); // 用-1表示'x'
+                currentRow.push_back(-1); // Use -1 to represent 'x'
             } else {
                 try {
                     currentRow.push_back(std::stoi(value));
                 } catch (...) {
-                    // 处理转换错误
+                    // Handle conversion errors
                     currentRow.push_back(-1);
                 }
             }
@@ -537,15 +625,20 @@ vector<vector<int>> Game::parseGameStatusData(const string& json) {
     return result;
 }
 
+/**
+ * @brief Converts game board numbers to marked status
+ * @param data Vector of vectors containing game board numbers
+ * @return Vector of vectors containing marked status (true/false)
+ */
 vector<vector<bool>> Game::parseGameMarkedData(const vector<vector<int>>& data) {
     vector<vector<bool>> result;
     
-    // 对每一行进行处理
+    // Process each row
     for (const auto& row : data) {
         vector<bool> boolRow;
-        // 检查每个元素
+        // Check each element
         for (int val : row) {
-            boolRow.push_back(val == -1);  // 如果是-1(x)则为true，否则为false
+            boolRow.push_back(val == -1);  // If it's -1 (representing 'x'), mark as true
         }
         result.push_back(boolRow);
     }
@@ -553,6 +646,11 @@ vector<vector<bool>> Game::parseGameMarkedData(const vector<vector<int>>& data) 
     return result;
 }
 
+/**
+ * @brief Parses a JSON string into a vector of Game objects
+ * @param json The JSON string to parse
+ * @return Vector of Game objects
+ */
 vector<Game> Game::from_json(const string& json) {
     vector<Game> games;
     stringstream ss(json);
@@ -661,6 +759,11 @@ vector<Game> Game::from_json(const string& json) {
     return games;
 }
 
+/**
+ * @brief Checks if a game ID already exists
+ * @param gameId The game ID to check
+ * @return true if game ID exists, false otherwise
+ */
 bool Game::isGameIdExist(const string& gameId) {
     vector<Game> games = DB::getInstance().load<Game>();
     for (const Game& game : games) {
@@ -669,6 +772,12 @@ bool Game::isGameIdExist(const string& gameId) {
     return false;
 }
 
+/**
+ * @brief Generates a unique game ID
+ * @return String containing the generated game ID
+ * 
+ * Uses current timestamp and random numbers to generate a unique ID
+ */
 string Game::generateGameId() {
     int nextId = 1;
     string gameId;
@@ -680,6 +789,11 @@ string Game::generateGameId() {
     return gameId;
 }
 
+/**
+ * @brief Continues a saved game
+ * 
+ * Resumes game from saved state and continues gameplay
+ */
 void Game::continueGame() {
     while (!isGameOver()) {
         playTurn();
@@ -689,6 +803,18 @@ void Game::continueGame() {
     cin.get();
 }
 
+/**
+ * @brief Loads player statistics from source players to current game players
+ * @param ps Vector of source players containing statistics to be loaded
+ * 
+ * This method copies the following statistics from source players to current game players:
+ * - Game count (total number of games played)
+ * - Win count (number of games won)
+ * - Lose count (number of games lost)
+ * - Win rate (percentage of games won)
+ * 
+ * The statistics are copied for both players (index 0 and 1) in the game.
+ */
 void Game::loadPlayerData(vector<Player>& ps) {
     players[0].setGameCount(ps[0].getGameCount());
     players[0].setWinCount(ps[0].getWinCount());
